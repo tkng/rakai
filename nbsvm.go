@@ -1,17 +1,18 @@
 package rakai
 
 import (
-	"fmt"
+//	"fmt"
 )
 
 type NBSVM struct {
-	Labels      *WordManager
-	w           []map[string]float64
-	count       []map[string]int64
-	all_count   map[string]int64
-	class_count map[string]int64
-	alpha       float64 // smoothness parameter
-	eta         float64
+	Labels          *WordManager
+	w               []map[string]float64
+	count           []map[string]int64
+	all_count       map[string]int64
+	class_count     []int64
+	class_count_all int64
+	alpha           float64 // smoothness parameter
+	eta             float64
 }
 
 func NewNBSVM() *NBSVM {
@@ -19,6 +20,8 @@ func NewNBSVM() *NBSVM {
 	nbsvm.w = make([]map[string]float64, 0)
 	nbsvm.count = make([]map[string]int64, 0)
 	nbsvm.all_count = make(map[string]int64)
+	nbsvm.class_count = make([]int64, 0)
+	nbsvm.class_count_all = 0
 	nbsvm.Labels = NewWordManager()
 	nbsvm.alpha = 0.1
 	nbsvm.eta = 1.0
@@ -29,6 +32,13 @@ func (nbsvm *NBSVM) update_nb_count(label_id int64, fv []FV) {
 	for len(nbsvm.count) < int(label_id)+1 {
 		nbsvm.count = append(nbsvm.count, make(map[string]int64))
 	}
+
+	for len(nbsvm.class_count) < int(label_id)+1 {
+		nbsvm.class_count = append(nbsvm.class_count, 0)
+	}
+
+	nbsvm.class_count[int(label_id)]++
+	nbsvm.class_count_all++
 
 	for _, x := range fv {
 		nbsvm.count[label_id][x.K]++
@@ -42,17 +52,24 @@ func (nbsvm *NBSVM) reweight(label_id int64, fv []FV) []FV {
 	for len(nbsvm.count) < int(label_id+1) {
 		nbsvm.count = append(nbsvm.count, make(map[string]int64))
 	}
+	for len(nbsvm.class_count) < int(label_id)+1 {
+		nbsvm.class_count = append(nbsvm.class_count, 0)
+	}
+
+	alpha := nbsvm.alpha
 
 	for i, x := range fv {
 		c := float64(nbsvm.count[label_id][x.K])
 		all := float64(nbsvm.all_count[x.K])
-		nb_w := float64((c + nbsvm.alpha) / (all - c + nbsvm.alpha))
-		fmt.Println(c, all, nb_w)
+		c2 := float64(nbsvm.class_count[label_id]) + alpha
+		all2 := float64(nbsvm.class_count_all)
+		nb_w := (c + alpha) / (c2 + alpha) / ((all - c + alpha) / (all2 + alpha))
+		//		fmt.Println(c, all, nb_w)
 		new_fv[i] = FV{x.K, x.V * nb_w}
 	}
-	fmt.Println("---------")
-	fmt.Println(fv)
-	fmt.Println(new_fv)
+	//	fmt.Println("---------")
+	//	fmt.Println(fv)
+	//	fmt.Println(new_fv)
 	return new_fv
 }
 
