@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -232,6 +233,15 @@ func TestFile(cl Classifier, filename string) (map[string]stats, error) {
 	}
 
 	return st, nil
+}
+
+func Mapkeys(m map[string]stats) []string {
+	vec := make([]string, 0)
+	for k, _ := range m {
+		vec = append(vec, k)
+	}
+	sort.Strings(vec)
+	return vec
 }
 
 func CalcPrecision(st stats) float64 {
