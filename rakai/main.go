@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"runtime/pprof"
-	//	"strings"
 )
 
 func main() {
@@ -44,19 +43,24 @@ Options\n`, os.Args[0], os.Args[0])
 		return
 	}
 
-	for _, filename := range flag.Args() {
-		for i := 0; i < 10; i++ {
-			fmt.Println("----------")
-			rakai.TrainFile(p, filename)
-			st, err := rakai.TestFile(p, filename)
-			for label, x := range st {
-				fmt.Println(label)
-				fmt.Println("  ", rakai.CalcPrecision(x))
-				fmt.Println("  ", rakai.CalcRecall(x))
-			}
-			if err != nil {
-				fmt.Println(err)
-			}
-		}
+	if len(flag.Args()) < 2 {
+		log.Fatal("unsupported algorithm: ", alg)
+	}
+
+	train_filename := flag.Args()[0]
+	for i := 0; i < 5; i++ {
+		rakai.TrainFile(p, train_filename)
+	}
+
+	test_filename := flag.Args()[1]
+	st, err := rakai.TestFile(p, test_filename)
+	if err != nil {
+		fmt.Println(err)
+	}
+	for _, label := range rakai.Mapkeys(st) {
+		fmt.Println(label)
+		fmt.Println("  ", rakai.CalcPrecision(st[label]))
+		fmt.Println("  ", rakai.CalcRecall(st[label]))
+		fmt.Println("  ", st[label])
 	}
 }
