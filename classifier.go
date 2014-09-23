@@ -157,15 +157,18 @@ func TrainFile(cl Classifier, filename string) error {
 		return err
 	}
 
-	reader := bufio.NewReader(fi)
+	reader := bufio.NewReaderSize(fi, 4096*16)
 	for {
 		line, _, err := reader.ReadLine()
-
+		if err != nil {
+			fmt.Println(err)
+		}
 		if err == io.EOF {
 			break
 		}
 
 		label, dat, err := parse_line(string(line))
+
 		if err != nil {
 			fmt.Println("err:", err)
 		}
@@ -197,16 +200,16 @@ func TestFile(cl Classifier, filename string) (map[string]stats, error) {
 		return nil, err
 	}
 
-	reader := bufio.NewReader(fi)
+	reader := bufio.NewReaderSize(fi, 4096*16)
 	for {
-		line, flg, err := reader.ReadLine()
+		line, _, err := reader.ReadLine()
 
 		if err == io.EOF {
-			fmt.Println(flg)
 			break
 		}
 
 		label, dat, err := parse_line(string(line))
+
 		predicted, _ := cl.predict(dat)
 
 		s1, ok := st[label]
