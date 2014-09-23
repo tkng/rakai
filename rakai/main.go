@@ -20,6 +20,8 @@ Options\n`, os.Args[0], os.Args[0])
 	}
 
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	alg := flag.String("algorithm", "nbsvm", "nbsvm (default) or perceptron")
+
 	flag.Parse()
 
 	if *cpuprofile != "" {
@@ -31,10 +33,19 @@ Options\n`, os.Args[0], os.Args[0])
 		defer pprof.StopCPUProfile()
 	}
 
-	p := rakai.NewNBSVM()
+	var p rakai.Classifier
+	switch *alg {
+	case "nbsvm":
+		p = rakai.NewNBSVM()
+	case "perceptron":
+		p = rakai.NewPerceptron()
+	default:
+		log.Fatal("unsupported algorithm: ", alg)
+		return
+	}
 
 	for _, filename := range flag.Args() {
-		for i := 0; i < 1; i++ {
+		for i := 0; i < 10; i++ {
 			fmt.Println("----------")
 			rakai.TrainFile(p, filename)
 			st, err := rakai.TestFile(p, filename)
