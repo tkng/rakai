@@ -83,7 +83,7 @@ func calc_weight(nbsvm *NBSVM, label_id, feature_id int64) float64 {
 		c2 = float64(nbsvm.class_count[label_id])
 	}
 	nb_w := (c + alpha) / (c2 + alpha) / ((all - c + alpha) / (all2 - c2 + alpha))
-	return math.Sqrt(nb_w)
+	return math.Log(nb_w)
 }
 
 func (nbsvm *NBSVM) reweight(label_id int64, fv []FV) []FV {
@@ -220,7 +220,7 @@ func (p *NBSVM) train1(label string, fvs []FVS) {
 	if predicted_id != int(true_id) {
 		p.update_from_id(true_id, fv, lr)
 		p.update_from_id(int64(predicted_id), fv, lr*-1.0)
-	} else if margin < 100.0 {
+	} else if margin < 1.0 {
 		p.update_from_id(true_id, fv, lr)
 		p.update_from_id(int64(second_id), fv, lr*-1.0)
 	}
