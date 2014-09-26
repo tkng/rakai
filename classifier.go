@@ -321,5 +321,5 @@ func CalcAccuracy(m map[string]stats) (float64, int, int) {
 		num_false += int(v.fn)
 	}
 	acc := float64(num_true) / (float64(num_false)/2.0 + float64(num_true))
-	return acc, num_true, num_false
+	return acc, num_true, num_false / 2.0
 }
