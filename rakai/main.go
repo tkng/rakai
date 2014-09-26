@@ -23,7 +23,7 @@ func train_file(args []string) {
 
 	alpha := fs.Float64("alpha", 0.5, "additive parameter")
 	eta := fs.Float64("eta", 0.1, "initial learning rate")
-	lambda := fs.Float64("lambda", 1.0e-10, "regularization parameter")
+	lambda := fs.Float64("lambda", 1.0e-12, "regularization parameter")
 	fs.IntVar(&iterations, "iterations", 10, "iteration number")
 	fs.IntVar(&iterations, "i", 10, "iteration number")
 
