@@ -6,53 +6,66 @@ import (
 	"github.com/tkng/rakai"
 	"log"
 	"os"
-	"runtime/pprof"
 )
 
-func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `
-Usage of %s:
-   %s [OPTIONS] ARGS...
-Options\n`, os.Args[0], os.Args[0])
-		flag.PrintDefaults()
-	}
+func train_file(args []string) {
+	var (
+		algorithm      string
+		model_filename string
+		iterations     int
+	)
+	fmt.Println(args)
+	fs := flag.NewFlagSet("train", flag.ExitOnError)
+	fs.StringVar(&algorithm, "algorithm", "nbsvm", "algorithm for training , nbsvm (default) or perceptron")
+	fs.StringVar(&algorithm, "a", "nbsvm", "algorithm for training , nbsvm (default) or perceptron")
+	fs.StringVar(&model_filename, "model", "", "model filename")
+	fs.StringVar(&model_filename, "m", "", "model filename")
 
-	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-	alg := flag.String("algorithm", "nbsvm", "nbsvm (default) or perceptron")
+	alpha := fs.Float64("alpha", 0.5, "additive parameter")
+	eta := fs.Float64("eta", 0.1, "initial learning rate")
+	lambda := fs.Float64("lambda", 1.0e-10, "regularization parameter")
+	fs.IntVar(&iterations, "iterations", 10, "iteration number")
+	fs.IntVar(&iterations, "i", 10, "iteration number")
 
-	flag.Parse()
+	fs.Parse(args)
 
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
+	// FIXME: model filename check
 
 	var p rakai.Classifier
-	switch *alg {
+	switch algorithm {
 	case "nbsvm":
-		p = rakai.NewNBSVM()
+		p = rakai.NewNBSVM(*alpha, *eta, *lambda)
 	case "perceptron":
-		p = rakai.NewPerceptron()
+		p = rakai.NewPerceptron(*eta)
 	default:
-		log.Fatal("unsupported algorithm: ", alg)
+		log.Fatal("unsupported algorithm: ", algorithm)
 		return
 	}
 
-	if len(flag.Args()) < 2 {
-		log.Fatal("unsupported algorithm: ", alg)
-	}
+	for _, train_filename := range fs.Args() {
+		fmt.Println(train_filename)
 
-	train_filename := flag.Args()[0]
-	for i := 0; i < 5; i++ {
-		rakai.TrainFile(p, train_filename)
+		for i := 0; i < iterations; i++ {
+			rakai.TrainFile(p, train_filename)
+		}
 	}
+	p.Save(model_filename)
+}
 
-	test_filename := flag.Args()[1]
+func test_file(args []string) {
+	var (
+		model_filename string
+	)
+
+	fs := flag.NewFlagSet("test", flag.ExitOnError)
+	fs.StringVar(&model_filename, "model", "", "model filename")
+	fs.StringVar(&model_filename, "m", "", "model filename")
+
+	fs.Parse(args)
+
+	p := rakai.NewPredictor(model_filename)
+
+	test_filename := fs.Args()[0]
 	st, err := rakai.TestFile(p, test_filename)
 	if err != nil {
 		fmt.Println(err)
@@ -62,5 +75,47 @@ Options\n`, os.Args[0], os.Args[0])
 		fmt.Println("  ", rakai.CalcPrecision(st[label]))
 		fmt.Println("  ", rakai.CalcRecall(st[label]))
 		fmt.Println("  ", st[label])
+	}
+	acc, nt, nf := rakai.CalcAccuracy(st)
+	fmt.Println("acc:", acc, nt, nf)
+}
+
+func predict(args []string) {
+	fmt.Println("sorry, predict is not implemented yet")
+	os.Exit(1)
+}
+
+var usage = `
+Usage %s <Command> [Options]
+
+Commands:
+  train   train model
+  test    test and caluculate precision, recall, accuracy
+  predict predict
+`
+
+func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, usage, os.Args[0])
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+	args := flag.Args()
+
+	if len(args) == 0 {
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	switch args[0] {
+	case "train":
+		train_file(args[1:])
+	case "test":
+		test_file(args[1:])
+	case "predict":
+		predict(args[1:])
+	default:
+		flag.Usage()
+		os.Exit(1)
 	}
 }
