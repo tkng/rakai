@@ -155,7 +155,6 @@ func (p *NBSVM) predict(fvs []FVS) (string, float64) {
 func clip(v float64, lu float64, lambda float64, t int64) float64 {
 	if v > 0.0 {
 		if v > (float64(t)-lu)*lambda {
-			fmt.Println(v, v-(float64(t)-lu)*lambda, (float64(t) - lu))
 			return v - (float64(t)-lu)*lambda
 		} else {
 			return 0.0
