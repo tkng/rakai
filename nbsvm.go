@@ -123,7 +123,7 @@ func (nbsvm *NBSVM) reweight(label_id int64, fv []FV) []FV {
 }
 
 func (p *NBSVM) predict_id(fv []FV) (int, float64, int, float64) {
-	//	p.regularize_l1(fv)
+	p.regularize_l1(fv)
 
 	id := 0
 	second_id := 0
@@ -153,22 +153,17 @@ func (p *NBSVM) predict(fvs []FVS) (string, float64) {
 }
 
 func clip(v float64, lu float64, lambda float64, t int64) float64 {
-	//	fmt.Println("--")
-	//	fmt.Println(v, lu, lambda, t, (float64(t)-lu)*lambda)
 	if v > 0.0 {
 		if v > (float64(t)-lu)*lambda {
 			fmt.Println(v, v-(float64(t)-lu)*lambda, (float64(t) - lu))
 			return v - (float64(t)-lu)*lambda
 		} else {
-			//			fmt.Println(0.0)
 			return 0.0
 		}
 	} else if v < 0.0 {
 		if v < (float64(t)-lu)*lambda {
-			//			fmt.Println(vgu, v+(float64(t)-lu)*lambda)
 			return v + (float64(t)-lu)*lambda
 		} else {
-			//			fmt.Println(0.0)
 			return 0.0
 		}
 	}
@@ -176,20 +171,33 @@ func clip(v float64, lu float64, lambda float64, t int64) float64 {
 }
 
 func (p *NBSVM) regularize_l1(fv []FV) {
-	for class, _ := range p.w {
+	for label_id, _ := range p.w {
 		for _, x := range fv {
-			//			fmt.Println(len(p.w[class]), len(p.lu[class]), x.K)
-			if int(x.K) < len(p.w[class]) {
-				//				fmt.Println(p.w[class][x.K], x.K)
-				p.w[class][x.K] = clip(p.w[class][x.K], p.lu[class][x.K], p.lambda, p.t)
-				//				fmt.Println(p.w[class][x.K], x.K)
-
+			feature_id := x.K
+			if int(feature_id) < len(p.w[label_id]) {
+				p.w[label_id][feature_id] = clip(p.w[label_id][feature_id], p.lu[label_id][feature_id], p.lambda, p.t)
 			} else {
-				for len(p.lu[class]) < int(x.K)+1 {
-					p.lu[class] = append(p.lu[class], float64(p.t))
+				for len(p.lu[label_id]) < int(x.K)+1 {
+					p.lu[label_id] = append(p.lu[label_id], float64(p.t))
 				}
 			}
-			p.lu[class][x.K] = float64(p.t)
+			p.lu[label_id][x.K] = float64(p.t)
+		}
+	}
+}
+
+func (p *NBSVM) regularize_l1_all() {
+	for label_id, _ := range p.w {
+		for feature_id, v := range p.w[label_id] {
+			if int(feature_id) < len(p.w[label_id]) {
+				lu := p.lu[label_id][feature_id]
+				p.w[label_id][feature_id] = clip(v, lu, p.lambda, p.t)
+			} else {
+				for len(p.lu[label_id]) < int(feature_id)+1 {
+					p.lu[label_id] = append(p.lu[label_id], float64(p.t))
+				}
+			}
+			p.lu[label_id][feature_id] = float64(p.t)
 		}
 	}
 }
@@ -244,7 +252,7 @@ func (p *NBSVM) update_from_id(label_id int64, fv []FV, coeff float64) {
 }
 
 func (p *NBSVM) Save(filename string) {
-
+	p.regularize_l1_all()
 	fi, err := os.Create(filename)
 
 	defer func() {
