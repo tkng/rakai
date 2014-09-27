@@ -48,6 +48,10 @@ Following procedure will provide precision, recall and accuracy.
 
 Not implemented yet, contribution is welcome!
 
+### data format
+
+Training/test data should conform to libsvm format. You can use almost arbitrary string as labels and features. (Not restricted to integers) Rakai convert them into integers internally, so it's quite efficient.
+
 ## experimental results
 
 To be written
