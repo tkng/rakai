@@ -50,6 +50,7 @@ func NewNBSVM(alpha float64, eta float64, lambda float64) *NBSVM {
 	nbsvm.ada = make([][]float64, 0)
 	nbsvm.w = make([][]float64, 0)
 	nbsvm.lu = make([][]float64, 0)
+	nbsvm.ada = make([][]float64, 0)
 	nbsvm.count = make([][]int64, 0)
 	nbsvm.all_count = make([]int64, 0)
 	nbsvm.class_count = make([]int64, 0)
@@ -102,8 +103,18 @@ func calc_weight(nbsvm *NBSVM, label_id, feature_id int64) float64 {
 	if int(label_id) < len(nbsvm.class_count) {
 		c2 = float64(nbsvm.class_count[label_id])
 	}
-	nb_w := (c + alpha) / (c2 + alpha) / ((all - c + alpha) / (all2 - c2 + alpha))
-	return math.Log(nb_w)
+	nb_w := (c + alpha) / (c2 + alpha + c2*alpha) / ((all - c + alpha) / (all2 - c2 + alpha + (all2-c2)*alpha))
+	//	nb_w := (c + alpha) / (c2 + alpha) / ((all - c + alpha) / (all2 - c2 + alpha))
+
+	// if nb_w > 1.0 {
+	// 	return math.Sqrt(nb_w)
+	// } else {
+	// 	return math.Pow(nb_w, 0.1)
+	// }
+
+	//	return math.Sqrt(nb_w)
+
+	return math.Log(nb_w + 1)
 }
 
 func (nbsvm *NBSVM) reweight(label_id int64, fv []FV) []FV {
@@ -115,30 +126,8 @@ func (nbsvm *NBSVM) reweight(label_id int64, fv []FV) []FV {
 
 	for i, x := range fv {
 		nb_w := calc_weight(nbsvm, label_id, x.K)
-		//		fmt.Println(nb_w, math.Log(nb_w+1), math.Log(nb_w), math.Sqrt(nb_w), math.Sqrt(nb_w+1))
-		//		nb_w = math.Sqrt(nb_w)
-
-		// fmt.Println("----")
-		// fmt.Println(c, c2, all, all2)
-		// fmt.Println(c+alpha, c2+alpha, all-c+alpha, all2-c2+alpha)
-		// fmt.Println((c+alpha)/(c2+alpha), (all+alpha)/(all2+alpha),
-		// 	(all-c+alpha)/(all2-c2+alpha))
-
-		if nb_w < 1 {
-			//			fmt.Println(nb_w, nb_w*0.25+0.75)
-			nb_w = nb_w*0.25 + 0.75
-		} else {
-			//			fmt.Println(nb_w, math.Sqrt(nb_w))
-			nb_w = math.Sqrt(nb_w)
-		}
-
-		//		nb_w = math.Log(nb_w+1)
-
 		new_fv[i] = FV{x.K, x.V * nb_w}
 	}
-	//	fmt.Println("---------")
-	//	fmt.Println(fv)
-	//	fmt.Println(new_fv)
 	return new_fv
 }
 
