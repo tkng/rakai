@@ -3,8 +3,6 @@
 Rakai is a simple, strong baseline for multiclass classification.
 It implements an algorithm called NBSVM, propsed by Wang and Manning at ACL 2012.
 
-## what's difference from original version
-
 ## how to build
 
 Rakai is implemented in Go language. Unfortunately, there's no binary distribution, so you have to build from source if you want to use Rakai.
@@ -25,7 +23,7 @@ Rakai provides three sub commands, say, train, test and predict.
 
 ### train
 
-Following procedure will download and train nbsvm. Or you can simply exec ./test.a1a.sh.
+Following procedure will download a1a (basic test data for binary classification) and train nbsvm. Or you can simply exec ./test.a1a.sh.
 
     curl http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a1a > a1a
     ./rakai/rakai train -a nbsvm -m a1a.nbsvm.model -i 10 a1a
