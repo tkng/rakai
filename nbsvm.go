@@ -183,7 +183,8 @@ func (p *NBSVM) regularize_l1(fv []FV) {
 		for _, x := range fv {
 			feature_id := x.K
 			if int(feature_id) < len(p.w[label_id]) {
-				p.w[label_id][feature_id] = clip(p.w[label_id][feature_id], p.lu[label_id][feature_id], p.lambda, p.t)
+				lr := p.calc_learning_rate(int64(label_id), feature_id)
+				p.w[label_id][feature_id] = clip(p.w[label_id][feature_id], p.lu[label_id][feature_id], p.lambda*lr, p.t)
 			} else {
 				for len(p.lu[label_id]) < int(x.K)+1 {
 					p.lu[label_id] = append(p.lu[label_id], float64(p.t))
@@ -227,11 +228,11 @@ func (p *NBSVM) train1(label string, fvs []FVS) {
 
 	p.update_nb_count(true_id, fv)
 	if predicted_id != int(true_id) {
-		p.update_from_id(true_id, fv, lr)
-		p.update_from_id(int64(predicted_id), fv, lr*-1.0)
+		p.update_from_id(true_id, fv, 1.0)
+		p.update_from_id(int64(predicted_id), fv, -1.0)
 	} else if margin < 1.0 {
-		p.update_from_id(true_id, fv, lr)
-		p.update_from_id(int64(second_id), fv, lr*-1.0)
+		p.update_from_id(true_id, fv, 1.0)
+		p.update_from_id(int64(second_id), fv, -1.0)
 	}
 	p.t++
 }
@@ -243,10 +244,15 @@ func ensure_lu(lu []float64, k int64) []float64 {
 	return lu
 }
 
+func (p *NBSVM) calc_learning_rate(label_id, feature_id int64) float64 {
+	return 1.0 / math.Pow(p.ada[label_id][feature_id]+1.0, 0.25)
+}
+
 func (p *NBSVM) update_from_id(label_id int64, fv []FV, coeff float64) {
 	for len(p.w) < int(label_id)+1 {
 		p.w = append(p.w, make([]float64, 0))
 		p.lu = append(p.lu, make([]float64, 0.0))
+		p.ada = append(p.ada, make([]float64, 0.0))
 	}
 	new_fv := p.reweight(label_id, fv)
 
@@ -255,7 +261,12 @@ func (p *NBSVM) update_from_id(label_id int64, fv []FV, coeff float64) {
 
 		p.w[label_id] = ensure_w(p.w[label_id], k)
 		p.lu[label_id] = ensure_lu(p.lu[label_id], k)
-		p.w[label_id][k] += new_fv[i].V * coeff
+		p.ada[label_id] = ensure_lu(p.ada[label_id], k)
+		lr := p.calc_learning_rate(label_id, k)
+		delta := new_fv[i].V * coeff * lr
+
+		p.w[label_id][k] += delta
+		p.ada[label_id][k] += delta * delta
 	}
 }
 
