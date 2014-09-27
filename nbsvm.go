@@ -161,7 +161,7 @@ func (p *NBSVM) predict(fvs []FVS) (string, float64) {
 	return p.Labels.id2word[id], score
 }
 
-func clip(v float64, lu float64, lambda float64, t int64) float64 {
+func (p *NBSVM) clip(v float64, lu float64, lambda float64, t int64) float64 {
 	if v > 0.0 {
 		if v > (float64(t)-lu)*lambda {
 			return v - (float64(t)-lu)*lambda
@@ -183,8 +183,9 @@ func (p *NBSVM) regularize_l1(fv []FV) {
 		for _, x := range fv {
 			feature_id := x.K
 			if int(feature_id) < len(p.w[label_id]) {
-				lr := p.calc_learning_rate(int64(label_id), feature_id)
-				p.w[label_id][feature_id] = clip(p.w[label_id][feature_id], p.lu[label_id][feature_id], p.lambda*lr, p.t)
+				lu := p.lu[label_id][feature_id]
+				lr := p.calc_learning_rate(int64(label_id), int64(feature_id))
+				p.w[label_id][feature_id] = p.clip(p.w[label_id][feature_id], lu, p.lambda*lr, p.t)
 			} else {
 				for len(p.lu[label_id]) < int(x.K)+1 {
 					p.lu[label_id] = append(p.lu[label_id], float64(p.t))
@@ -198,14 +199,9 @@ func (p *NBSVM) regularize_l1(fv []FV) {
 func (p *NBSVM) regularize_l1_all() {
 	for label_id, _ := range p.w {
 		for feature_id, v := range p.w[label_id] {
-			if int(feature_id) < len(p.w[label_id]) {
-				lu := p.lu[label_id][feature_id]
-				p.w[label_id][feature_id] = clip(v, lu, p.lambda, p.t)
-			} else {
-				for len(p.lu[label_id]) < int(feature_id)+1 {
-					p.lu[label_id] = append(p.lu[label_id], float64(p.t))
-				}
-			}
+			lu := p.lu[label_id][feature_id]
+			lr := p.calc_learning_rate(int64(label_id), int64(feature_id))
+			p.w[label_id][feature_id] = p.clip(v, lu, p.lambda*lr, p.t)
 			p.lu[label_id][feature_id] = float64(p.t)
 		}
 	}
@@ -245,7 +241,8 @@ func ensure_lu(lu []float64, k int64) []float64 {
 }
 
 func (p *NBSVM) calc_learning_rate(label_id, feature_id int64) float64 {
-	return 1.0 / math.Pow(p.ada[label_id][feature_id]+1.0, 0.25)
+	return 1.0 / math.Sqrt(p.ada[label_id][feature_id]+1.0)
+	//	return 1.0 / math.Pow(p.ada[label_id][feature_id]+1.0, 0.25)
 }
 
 func (p *NBSVM) update_from_id(label_id int64, fv []FV, coeff float64) {
