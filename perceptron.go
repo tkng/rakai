@@ -137,20 +137,4 @@ func (p *Perceptron) Save(filename string) {
 		}
 	}
 	writer.Flush()
-
-	// for {
-	// 	line, _, err := writer.ReadLine()
-	// 	if err == io.EOF {
-	// 		break
-	// 	}
-
-	// 	label, dat, err := parse_line(string(line))
-
-	// 	if err != nil {
-	// 		fmt.Println("err:", err)
-	// 	}
-	// 	cl.train1(label, dat)
-	// }
-	//	return nil
-
 }
