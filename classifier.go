@@ -74,7 +74,9 @@ func (wm *WordManager) get_word(word string, update bool) int64 {
 
 	if ok {
 		return id
-	} else if update {
+	}
+
+	if update {
 		return wm.add_word(word)
 	}
 	return -1
