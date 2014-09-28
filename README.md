@@ -9,10 +9,8 @@ Rakai is implemented in Go language. Unfortunately, there's no binary distributi
 
 set GOPATH environment to somewhere you want, then following command will generate rakai.
 
-    cd $GOPATH
-    mkdir -p src/github.com/tkng
-    git clone https://github.com/tkng/rakai.git
-    cd rakai/rakai
+    go get github.com/tkng/rakai
+    cd $GOPATH/src/github.com/tkng/rakai/rakai
     go build
 
 I will provide a binary program for Windows and Mac OS X in the future version.
