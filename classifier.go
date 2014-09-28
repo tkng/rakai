@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -264,10 +265,15 @@ func NewPredictor(filename string) *Predictor {
 	p.w = make([][]float64, 0)
 
 	fi, err := os.Open(filename)
-
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
+
+	defer func() {
+		if err := fi.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	reader := bufio.NewReaderSize(fi, 4096*64)
 	for {
