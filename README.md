@@ -58,4 +58,5 @@ Rakai is distributed under MIT license. See LICENSE file for details.
 
 ## References
 
-  * Sida Wang and Chris Manning, "Baselines and Bigrams: Simple, Good Sentiment and Text Classification", Proceedings of the ACL, 2012
+  * Sida Wang and Chris Manning. "Baselines and Bigrams: Simple, Good Sentiment and Text Classification". Proceedings of the ACL, 2012.
+  * John Duchi, Elad Hazan, Yoram Singer. "Adaptive Subgradient Methods for Online Learning and Stochastic Optimization". JMLR, 2011.
