@@ -30,6 +30,7 @@ import (
 
 func train_file(args []string) {
 	var (
+		adagrad        bool
 		algorithm      string
 		model_filename string
 		iterations     int
@@ -38,12 +39,13 @@ func train_file(args []string) {
 	fs := flag.NewFlagSet("train", flag.ExitOnError)
 	fs.StringVar(&algorithm, "algorithm", "nbsvm", "algorithm for training , nbsvm (default) or perceptron")
 	fs.StringVar(&algorithm, "a", "nbsvm", "algorithm for training , nbsvm (default) or perceptron")
+	fs.BoolVar(&adagrad, "adagrad", true, "enable adagrad")
 	fs.StringVar(&model_filename, "model", "", "model filename")
 	fs.StringVar(&model_filename, "m", "", "model filename")
 
-	alpha := fs.Float64("alpha", 0.5, "additive parameter")
+	alpha := fs.Float64("alpha", 0.01, "additive parameter")
 	eta := fs.Float64("eta", 0.1, "initial learning rate")
-	lambda := fs.Float64("lambda", 1.0e-6, "regularization parameter")
+	lambda := fs.Float64("lambda", 1.0e-8, "regularization parameter")
 	fs.IntVar(&iterations, "iterations", 10, "iteration number")
 	fs.IntVar(&iterations, "i", 10, "iteration number")
 
@@ -54,7 +56,9 @@ func train_file(args []string) {
 	var p rakai.Classifier
 	switch algorithm {
 	case "nbsvm":
-		p = rakai.NewNBSVM(*alpha, *eta, *lambda)
+		p = rakai.NewNBSVM(*alpha, *eta, *lambda, adagrad)
+	case "svm":
+		p = rakai.NewSVM(*eta, *lambda, adagrad)
 	case "perceptron":
 		p = rakai.NewPerceptron(*eta)
 	default:

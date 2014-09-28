@@ -41,9 +41,12 @@ type NBSVM struct {
 	t               int64
 	lambda          float64
 	ada             [][]float64
+	enable_nb       bool
+	enable_adagrad  bool
 }
 
-func NewNBSVM(alpha float64, eta float64, lambda float64) *NBSVM {
+func NewNBSVM(alpha float64, eta float64, lambda float64, enable_adagrad bool) *NBSVM {
+	fmt.Println(enable_adagrad)
 	var nbsvm NBSVM
 	nbsvm.Labels = NewWordManager()
 	nbsvm.Features = NewWordManager()
@@ -59,10 +62,21 @@ func NewNBSVM(alpha float64, eta float64, lambda float64) *NBSVM {
 	nbsvm.eta = eta
 	nbsvm.t = 0
 	nbsvm.lambda = lambda
+	nbsvm.enable_nb = true
+	nbsvm.enable_adagrad = enable_adagrad
 	return &nbsvm
 }
 
+func NewSVM(eta float64, lambda float64, enable_adagrad bool) *NBSVM {
+	p := NewNBSVM(-1.0, eta, lambda, enable_adagrad)
+	p.enable_nb = false
+	return p
+}
+
 func (nbsvm *NBSVM) update_nb_count(label_id int64, fv []FV) {
+	if !nbsvm.enable_nb {
+		return
+	}
 	for len(nbsvm.count) < int(label_id)+1 {
 		nbsvm.count = append(nbsvm.count, make([]int64, 0))
 	}
@@ -87,6 +101,10 @@ func (nbsvm *NBSVM) update_nb_count(label_id int64, fv []FV) {
 }
 
 func calc_weight(nbsvm *NBSVM, label_id, feature_id int64) float64 {
+	if !nbsvm.enable_nb {
+		return 1.0
+	}
+
 	alpha := nbsvm.alpha
 
 	c := 0.0
@@ -104,6 +122,7 @@ func calc_weight(nbsvm *NBSVM, label_id, feature_id int64) float64 {
 		c2 = float64(nbsvm.class_count[label_id])
 	}
 	nb_w := (c + alpha) / (c2 + alpha + c2*alpha) / ((all - c + alpha) / (all2 - c2 + alpha + (all2-c2)*alpha))
+	return math.Pow(nb_w, 0.1)
 	//	nb_w := (c + alpha) / (c2 + alpha) / ((all - c + alpha) / (all2 - c2 + alpha))
 
 	// if nb_w > 1.0 {
@@ -241,7 +260,12 @@ func ensure_lu(lu []float64, k int64) []float64 {
 }
 
 func (p *NBSVM) calc_learning_rate(label_id, feature_id int64) float64 {
-	return 1.0 / math.Sqrt(p.ada[label_id][feature_id]+1.0)
+	if p.enable_adagrad {
+		return 1.0 / math.Sqrt(p.ada[label_id][feature_id]+1.0)
+	} else {
+		return math.Pow(p.eta/(1.0+p.eta*float64(p.t)), 0.1)
+	}
+	//	return 1.0 / math.Sqrt(p.ada[label_id][feature_id]+1.0)
 	//	return 1.0 / math.Pow(p.ada[label_id][feature_id]+1.0, 0.25)
 }
 
