@@ -1,7 +1,7 @@
 # Rakai: a strong baseline for multiclass document classification
 
 Rakai is a simple, strong baseline for multiclass classification.
-It implements an algorithm called NBSVM, propsed by Wang and Manning at ACL 2012.
+It implements an algorithm called NBSVM, proposed by Wang and Manning at ACL 2012.
 
 ## how to build
 
