@@ -181,18 +181,18 @@ func (p *NBSVM) predict(fvs []FVS) (string, float64) {
 }
 
 func (p *NBSVM) clip(v float64, lu float64, lambda float64, t int64) float64 {
+	c := (float64(t) - lu) * lambda
 	if v > 0.0 {
-		if v > (float64(t)-lu)*lambda {
-			return v - (float64(t)-lu)*lambda
-		} else {
-			return 0.0
+		if v > c {
+			return v - c
 		}
-	} else if v < 0.0 {
-		if v < (float64(t)-lu)*lambda {
-			return v + (float64(t)-lu)*lambda
-		} else {
-			return 0.0
+		return 0.0
+	}
+	if v < 0.0 {
+		if v < c {
+			return v + c
 		}
+		return 0.0
 	}
 	return 0.0
 }
