@@ -122,17 +122,13 @@ func calc_weight(nbsvm *NBSVM, label_id, feature_id int64) float64 {
 	}
 	nb_w := (c + alpha) / (c2 + alpha + c2*alpha) / ((all - c + alpha) / (all2 - c2 + alpha + (all2-c2)*alpha))
 
+	return math.Log(nb_w + 1)
+
 	if nb_w > 1.0 {
 		return math.Sqrt(nb_w)
 	} else {
 		return math.Pow(nb_w, 0.25)
 	}
-
-	//		return math.Sqrt(nb_w)
-
-	//	return math.Sqrt(nb_w)
-
-	return math.Log(nb_w + 1)
 }
 
 func (nbsvm *NBSVM) reweight(label_id int64, fv []FV) []FV {
@@ -144,15 +140,6 @@ func (nbsvm *NBSVM) reweight(label_id int64, fv []FV) []FV {
 
 	for i, x := range fv {
 		nb_w := calc_weight(nbsvm, label_id, x.K)
-
-		if nb_w < 1 {
-			nb_w = nb_w*0.25 + 0.75
-		} else {
-			nb_w = math.Sqrt(nb_w)
-		}
-
-		nb_w = math.Sqrt(nb_w)
-
 		new_fv[i] = FV{x.K, x.V * nb_w}
 	}
 	return new_fv
@@ -167,8 +154,7 @@ func (p *NBSVM) predict_id(fv []FV) (int, float64, int, float64) {
 	max_score := -100000.0
 	second_score := -100000.0
 	for i, w := range p.w {
-		scaled_fv := p.reweight(int64(i), fv)
-		score := product(w, scaled_fv)
+		score := product(w, fv)
 		if score > max_score {
 			second_id = id
 			second_score = max_score
@@ -241,21 +227,18 @@ func (p *NBSVM) train1(label string, fvs []FVS) {
 		p.Labels.add_word(label)
 	}
 	fv := fvs2fv(p.Features, fvs, true)
+	p.update_nb_count(true_id, fv)
+
 	predicted_id, _, second_id, margin := p.predict_id(fv)
 
-	lr := math.Pow(p.eta/(1.0+p.eta*float64(p.t)), 0.01)
-	//	lr := p.eta / (1.0 + math.Sqrt(p.eta*float64(p.t)))
-	if p.t%500 == 0 {
-		fmt.Printf("%v\t%v\t%4.2f\t%2.6f\n", predicted_id, true_id, margin, lr)
-	}
+	rw_fv := p.reweight(true_id, fv)
 
-	p.update_nb_count(true_id, fv)
 	if predicted_id != int(true_id) {
-		p.update_from_id(true_id, fv, 1.0)
-		p.update_from_id(int64(predicted_id), fv, -1.0)
+		p.update_from_id(true_id, rw_fv, 1.0)
+		p.update_from_id(int64(predicted_id), rw_fv, -1.0)
 	} else if margin < 1.0 {
-		p.update_from_id(true_id, fv, 1.0)
-		p.update_from_id(int64(second_id), fv, -1.0)
+		p.update_from_id(true_id, rw_fv, 1.0)
+		p.update_from_id(int64(second_id), rw_fv, -1.0)
 	}
 	p.t++
 }
@@ -273,8 +256,6 @@ func (p *NBSVM) calc_learning_rate(label_id, feature_id int64) float64 {
 	} else {
 		return math.Pow(p.eta/(1.0+p.eta*float64(p.t)), 0.1)
 	}
-	//	return 1.0 / math.Sqrt(p.ada[label_id][feature_id]+1.0)
-	//	return 1.0 / math.Pow(p.ada[label_id][feature_id]+1.0, 0.25)
 }
 
 func (p *NBSVM) update_from_id(label_id int64, fv []FV, coeff float64) {
@@ -283,16 +264,15 @@ func (p *NBSVM) update_from_id(label_id int64, fv []FV, coeff float64) {
 		p.lu = append(p.lu, make([]float64, 0.0))
 		p.ada = append(p.ada, make([]float64, 0.0))
 	}
-	new_fv := p.reweight(label_id, fv)
-
-	for i := 0; i < len(new_fv); i++ {
-		k := new_fv[i].K
+	for i := 0; i < len(fv); i++ {
+		k := fv[i].K
 
 		p.w[label_id] = ensure_w(p.w[label_id], k)
 		p.lu[label_id] = ensure_lu(p.lu[label_id], k)
 		p.ada[label_id] = ensure_lu(p.ada[label_id], k)
+
 		lr := p.calc_learning_rate(label_id, k)
-		delta := new_fv[i].V * coeff * lr
+		delta := fv[i].V * coeff * lr
 
 		p.w[label_id][k] += delta
 		p.ada[label_id][k] += delta * delta
@@ -321,7 +301,7 @@ func (p *NBSVM) Save(filename string) {
 			if v != 0.0 {
 				feature := p.Features.id2word[feature_id]
 				//				fmt.Fprintf(os.Stderr, "%s\t%s\t%2.4f\n", label, feature, v)
-				v *= calc_weight(p, int64(label_id), int64(feature_id))
+				//				v *= calc_weight(p, int64(label_id), int64(feature_id))
 				writer.WriteString(fmt.Sprintf("%s\t%s\t%2.4f\n", label, feature, v))
 			}
 		}
